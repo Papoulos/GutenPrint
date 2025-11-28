@@ -4,18 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GutenPrint AI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            screens: {
-              'print': {'raw': 'print'},
-            }
-          }
-        }
-      }
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
       /* Custom print styles to ensure book formatting works when saving as PDF */
@@ -135,7 +123,8 @@
   }
 }
 </script>
-</head>
+    <script type="module" src="/index.tsx"></script>
+  </head>
   <body class="bg-slate-100 text-slate-900 font-sans print:bg-white">
     <div id="root"></div>
     <!-- Fixed Footer for Print -->

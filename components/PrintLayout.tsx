@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ParsedBook, AIAnalysis } from '../types';
-import { ArrowLeft, Printer, Sparkles, Loader2, FileDown, X } from 'lucide-react';
-import { analyzeBookContent } from '../services/geminiService';
+import { ParsedBook } from '../types';
+import { ArrowLeft, Printer, FileDown, X } from 'lucide-react';
 
 interface PrintLayoutProps {
   book: ParsedBook;
@@ -9,28 +8,29 @@ interface PrintLayoutProps {
 }
 
 const PrintLayout: React.FC<PrintLayoutProps> = ({ book, onBack }) => {
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // Directly trigger print window without timeout to avoid browser blocking
-  const triggerPrint = () => {
-    window.print();
-    setShowPrintModal(false);
-  };
-
-  const handleAIAnalysis = async () => {
-    setAnalyzing(true);
-    // Use the preface or first chapter for analysis
-    const sample = book.chapters.length > 0 ? book.chapters[0].content : book.fullText;
+  const handleGenerateBook = async () => {
     try {
-      const result = await analyzeBookContent(book.title, book.author, sample);
-      setAnalysis(result);
-    } catch (e) {
-      console.error(e);
-      alert("Impossible de générer l'analyse pour le moment.");
-    } finally {
-      setAnalyzing(false);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/generate-book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ book }),
+      });
+      const html = await response.text();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.print();
+      }
+      setShowPrintModal(false);
+    } catch (error) {
+      console.error('Error generating book:', error);
+      alert('Failed to generate the book. Please try again.');
     }
   };
 
@@ -71,7 +71,7 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({ book, onBack }) => {
                 Annuler
               </button>
               <button 
-                onClick={triggerPrint}
+                onClick={handleGenerateBook}
                 className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all"
               >
                 <FileDown className="w-4 h-4" />
@@ -93,23 +93,6 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({ book, onBack }) => {
         </button>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleAIAnalysis}
-            disabled={analyzing || !!analysis}
-            className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              analysis 
-                ? 'bg-green-100 text-green-700 cursor-default'
-                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-            }`}
-          >
-            {analyzing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            {analysis ? 'Analyse Terminée' : 'Enrichir avec IA'}
-          </button>
-          
           <button 
             type="button"
             onClick={() => setShowPrintModal(true)}
@@ -121,97 +104,12 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({ book, onBack }) => {
         </div>
       </div>
 
-      {/* 
-          Main Content Area 
-      */}
-      <div className="flex flex-col items-center py-8 gap-8 print:block print:py-0 print:gap-0">
-        
-        {/* 
-          PAGE 1: TITLE 
-          z-50 and bg-white ensure it covers the fixed footer (page numbers) in print mode
-        */}
-        <div className="print-sheet w-[14.8cm] min-h-[21cm] bg-white shadow-xl print:shadow-none flex flex-col justify-center items-center text-center relative p-[2.5cm] z-50 print:z-50">
-          <div className="flex-1 flex flex-col justify-center w-full z-10">
-            <h1 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-6 leading-tight">
-              {book.title}
-            </h1>
-            <div className="w-16 h-px bg-slate-800 mx-auto mb-6"></div>
-            <h2 className="font-sans text-lg uppercase tracking-[0.2em] text-slate-600">
-              {book.author}
-            </h2>
-          </div>
-          <div className="mt-auto font-serif text-xs text-slate-500">
-            <p>GutenPrint AI Edition</p>
-          </div>
-        </div>
-
-        {/* 
-          PAGE 2: COPYRIGHT
-          Also covers the footer if needed, or we can let numbering start here.
-          Let's cover it to be clean.
-        */}
-        <div className="print-sheet w-[14.8cm] min-h-[21cm] bg-white shadow-xl print:shadow-none flex flex-col justify-end text-xs font-serif relative p-[2.5cm] z-40 print:z-40">
-           <div className="mb-8">
-            <h3 className="font-bold uppercase tracking-wider mb-3">Informations</h3>
-            <p className="mb-4 text-slate-600 leading-relaxed text-justify">
-              Texte source : Project Gutenberg.<br/>
-              Mise en page automatisée pour format A5.
-            </p>
-            
-            {analysis && (
-              <div className="mt-6 pt-4 border-t border-slate-200">
-                <h4 className="font-bold mb-2">Analyse IA</h4>
-                <p className="italic mb-4 text-justify leading-relaxed">{analysis.summary}</p>
-                <div className="flex gap-4 text-[10px]">
-                  <span className="bg-slate-100 px-2 py-1 rounded">Niveau: {analysis.readingLevel}</span>
-                  <span className="bg-slate-100 px-2 py-1 rounded">Ambiance: {analysis.mood}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 
-          CONTENT CHAPTERS 
-        */}
-        {book.chapters.map((chapter, index) => (
-          <div key={index} className="print-sheet w-[14.8cm] min-h-[21cm] bg-white shadow-xl print:shadow-none font-serif text-justify leading-relaxed text-slate-900 hyphens-auto p-[2.5cm] pt-[2.5cm] pb-[3cm]">
-            
-            {/* Chapter Header */}
-            <div className="mb-8 mt-2 text-center">
-               {/* Use the title detected by regex */}
-              <h3 className="text-xl font-bold text-slate-900 mb-4 uppercase tracking-wide">
-                {chapter.title}
-              </h3>
-              <div className="w-8 h-0.5 bg-slate-300 mx-auto"></div>
-            </div>
-
-            {/* Chapter Text */}
-            <div 
-              className="chapter-content text-[10pt] leading-[1.6]" 
-              style={{ textIndent: '1.5em' }}
-            >
-              {chapter.content.split(/\n\s*\n/).map((para, i) => {
-                 const cleanPara = para.replace(/\n/g, ' ').trim();
-                 if (!cleanPara) return null;
-                 return <p key={i} className="mb-3">{cleanPara}</p>;
-              })}
-            </div>
-          </div>
-        ))}
-        
-        {/* Back Cover */}
-        <div className="print-sheet w-[14.8cm] min-h-[21cm] bg-slate-900 text-white print:bg-white print:text-black shadow-xl print:shadow-none flex flex-col justify-center items-center text-center p-[2.5cm]">
-           <div className="w-full">
-              <h2 className="text-xl font-serif font-bold mb-6">{book.title}</h2>
-              {analysis ? (
-                 <p className="italic leading-relaxed opacity-90 text-sm mb-8 text-justify">{analysis.summary}</p>
-              ) : (
-                <p className="opacity-70 text-sm mb-8">Fin</p>
-              )}
-           </div>
-        </div>
-
+      <div className="flex flex-col items-center justify-center h-full">
+        <h1 className="text-2xl font-bold">{book.title}</h1>
+        <h2 className="text-lg text-gray-600">{book.author}</h2>
+        <p className="mt-4">
+          Click the "Imprimer / PDF" button to generate the book.
+        </p>
       </div>
     </div>
   );
