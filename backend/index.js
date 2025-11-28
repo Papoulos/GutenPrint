@@ -5,26 +5,8 @@ const cors = require('cors');
 const app = express();
 const port = 3001;
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:3003',
-  'http://localhost:5173',
-];
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-};
-
-app.use(cors(corsOptions));
-app.use(bodyParser.json({ limit: '50mb' }));
+app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
   res.send('Backend is running!');
