@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GutenPrint AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            screens: {
+              'print': {'raw': 'print'},
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      /* Custom print styles to ensure book formatting works when saving as PDF */
+      @media print {
+        @page {
+          /* CRITICAL: Set margin to 0 to hide browser header/footer (URL, Title, Date) */
+          margin: 0;
+          size: A5; /* Target book size */
+        }
+        
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: white;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* 
+           The container that acts as the physical page surface.
+           Padding handles the "book margins".
+        */
+        .print-sheet {
+          width: 100% !important;
+          max-width: none !important;
+          
+          /* OPTIMIZED MARGINS FOR A5 BOOK FORMAT */
+          /* Top: Enough for header breathing room */
+          padding-top: 2.5cm !important; 
+          
+          /* Bottom: Larger to accommodate page numbers comfortably */
+          padding-bottom: 3cm !important;
+          
+          /* Sides: Increased to 2.5cm for elegant narrow text column and binding safety */
+          padding-left: 2.5cm !important;
+          padding-right: 2.5cm !important;
+          
+          margin: 0 !important;
+          box-shadow: none !important;
+          border: none !important;
+          
+          /* Typography enforcement */
+          font-size: 10pt !important;
+          line-height: 1.5 !important;
+          text-align: justify !important;
+          
+          /* Ensure chapters always start on a new page */
+          break-before: page;
+          page-break-before: always;
+          
+          position: relative;
+        }
+        
+        /* Exception for the very first page (Title) to avoid blank page before it */
+        .print-sheet:first-of-type {
+          break-before: auto;
+          page-break-before: auto;
+        }
+
+        .no-print {
+          display: none !important;
+        }
+        
+        /* Hide scrollbars in print */
+        ::-webkit-scrollbar {
+          display: none;
+        }
+
+        /* 
+           Footer styling for print - Positioned FIXED to repeat on every page 
+           We use a z-index trick to hide it on Title pages (Title page gets z-50 + bg-white)
+        */
+        .print-footer {
+          position: fixed;
+          bottom: 1.5cm; /* Moved up slightly to be safe within the 3cm bottom padding area */
+          left: 0;
+          right: 0;
+          height: 0.5cm;
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Inter', sans-serif;
+          font-size: 9pt;
+          color: #666;
+          z-index: 10;
+          pointer-events: none;
+        }
+        
+        /* CSS Counter for page numbers */
+        body {
+          counter-reset: page-counter;
+        }
+        /* Only increment on content pages, not title page (logic handled in CSS classes often fails in print, 
+           so we increment globally but mask it on title page) */
+        .page-count::after {
+          counter-increment: page-counter;
+          content: counter(page-counter);
+        }
+      }
+      
+      /* Hyphenation for better justified text blocks */
+      .hyphens-auto {
+        -webkit-hyphens: auto;
+        -moz-hyphens: auto;
+        -ms-hyphens: auto;
+        hyphens: auto;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-100 text-slate-900 font-sans print:bg-white">
+    <div id="root"></div>
+    <!-- Fixed Footer for Print -->
+    <div class="print-footer hidden print:flex">
+       <span class="text-[9pt] text-slate-500 font-serif tracking-widest">
+         - <span class="page-count"></span> -
+       </span>
+    </div>
+  </body>
+</html>

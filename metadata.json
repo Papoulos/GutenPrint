@@ -1,0 +1,5 @@
+{
+  "name": "GutenPrint AI",
+  "description": "Automatisation de la mise en page de livres Project Gutenberg pour impression, enrichie par Gemini.",
+  "requestFramePermissions": []
+}
